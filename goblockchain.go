@@ -1,7 +1,6 @@
 package main
 
 import (
-	"fmt"
 	"log"
 	"time"
 )
@@ -21,10 +20,26 @@ func NewBlock(nonce int, previousHash string) *Block {
 
 	return b
 }
-func init() {
-	log.SetPrefix("Blockchain: ")
+
+type Blockchain struct {
+	transactionpool []string
+	chain           []*Block
 }
 
-func main() {
-	fmt.Printf("test")
+func NewBlockchain() *Blockchain {
+	bc := new(Blockchain)
+	bc.CreateBlock(0, "Init Hash")
+
+	return bc
+}
+
+func (bc *Blockchain) CreateBlock(nonce int, previousHash string) *Block {
+	b := NewBlock(nonce, previousHash)
+	bc.chain = append(bc.chain, b)
+
+	return b
+}
+
+func init() {
+	log.SetPrefix("Blockchain: ")
 }
