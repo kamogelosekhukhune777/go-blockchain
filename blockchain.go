@@ -9,7 +9,11 @@ import (
 	"time"
 )
 
-const MiningDifficulty = 3
+const (
+	MiningDifficulty = 3
+	MinningSender    = "THE BLOCKCHAIN"
+	MinningReward    = 1.0
+)
 
 type Block struct {
 	timestamp    int64
@@ -57,13 +61,15 @@ func (b *Block) MarshalJson() ([]byte, error) {
 }
 
 type BlockChain struct {
-	transactionpool []*Transaction
-	chain           []*Block
+	transactionpool   []*Transaction
+	chain             []*Block
+	blockChainaddress string
 }
 
-func NewBlockChain() *BlockChain {
+func NewBlockChain(blockChainaddress string) *BlockChain {
 	b := &Block{}
 	bc := new(BlockChain)
+	bc.blockChainaddress = blockChainaddress
 	bc.CreateBlock(0, b.Hash())
 
 	return bc
@@ -108,6 +114,15 @@ func (bc *BlockChain) ValidProof(nonce int, previousHash [32]byte, transactions 
 	guessBlock := Block{0, nonce, previousHash, transactions}
 	guessHashStr := fmt.Sprintf("%x", guessBlock.Hash())
 	return guessHashStr[:difficulty] == zeros
+}
+
+func (bc *BlockChain) Minning() bool {
+	bc.AddTransaction(MinningSender, bc.blockChainaddress, MinningReward)
+	nonce := bc.ProofOfWork()
+	previousHah := bc.LastBlock().Hash()
+	bc.CreateBlock(nonce, previousHah)
+	log.Println("action=minning, status=success")
+	return true
 }
 
 func (bc *BlockChain) ProofOfWork() int {
