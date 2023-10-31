@@ -116,6 +116,16 @@ func (bc *BlockChain) ValidProof(nonce int, previousHash [32]byte, transactions 
 	return guessHashStr[:difficulty] == zeros
 }
 
+func (bc *BlockChain) ProofOfWork() int {
+	transactions := bc.CopyTransactionPool()
+	previousHash := bc.LastBlock().Hash()
+	nonce := 0
+	for !bc.ValidProof(nonce, previousHash, transactions, MiningDifficulty) {
+		nonce += 1
+	}
+	return nonce
+}
+
 func (bc *BlockChain) Minning() bool {
 	bc.AddTransaction(MinningSender, bc.blockChainaddress, MinningReward)
 	nonce := bc.ProofOfWork()
@@ -125,14 +135,20 @@ func (bc *BlockChain) Minning() bool {
 	return true
 }
 
-func (bc *BlockChain) ProofOfWork() int {
-	transactions := bc.CopyTransactionPool()
-	previousHash := bc.LastBlock().Hash()
-	nonce := 0
-	for !bc.ValidProof(nonce, previousHash, transactions, MiningDifficulty) {
-		nonce += 1
+func (bc *BlockChain) CalculateTotalAmmount(blockChainAddress string) float32 {
+	var totalAmount float32
+	for _, b := range bc.chain {
+		for _, t := range b.transactions {
+			value := t.value
+			if blockChainAddress == t.recipientBlockChainAddress {
+				totalAmount += value
+			}
+			if blockChainAddress == t.senderBlockChainAddress {
+				totalAmount -= value
+			}
+		}
 	}
-	return nonce
+	return totalAmount
 }
 
 type Transaction struct {
