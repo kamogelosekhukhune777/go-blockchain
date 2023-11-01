@@ -1,12 +1,15 @@
 package block
 
 import (
+	"crypto/ecdsa"
 	"crypto/sha256"
 	"encoding/json"
 	"fmt"
 	"log"
 	"strings"
 	"time"
+
+	"github.com/kamogelosekhukhune777/go-blockchain/utils"
 )
 
 const (
@@ -95,9 +98,24 @@ func (bc *BlockChain) Print() {
 	fmt.Printf("%s\n", strings.Repeat("*", 25))
 }
 
-func (bc *BlockChain) AddTransaction(sender, recipient string, value float32) {
+func (bc *BlockChain) AddTransaction(sender, recipient string, value float32, senderPublicKey *ecdsa.PublicKey, s *utils.Signature) bool {
 	t := NewTransactions(sender, recipient, value)
-	bc.transactionpool = append(bc.transactionpool, t)
+	if sender == MinningSender {
+		bc.transactionpool = append(bc.transactionpool, t)
+		return true
+	}
+	if bc.VerifyTransactionSignature(senderPublicKey, s, t) {
+		bc.transactionpool = append(bc.transactionpool, t)
+		return true
+	} else {
+		log.Println("ERROR: verify Transaction")
+	}
+	return false
+}
+func (bc *BlockChain) VerifyTransactionSignature(senderPublicKey *ecdsa.PublicKey, s *utils.Signature, t *Transaction) bool {
+	m, _ := json.Marshal(t)
+	h := sha256.Sum256([]byte(m))
+	return ecdsa.Verify(senderPublicKey, h[:], s.R, s.S)
 }
 
 func (bc *BlockChain) CopyTransactionPool() []*Transaction {
@@ -127,7 +145,7 @@ func (bc *BlockChain) ProofOfWork() int {
 }
 
 func (bc *BlockChain) Minning() bool {
-	bc.AddTransaction(MinningSender, bc.blockChainaddress, MinningReward)
+	bc.AddTransaction(MinningSender, bc.blockChainaddress, MinningReward, nil, nil)
 	nonce := bc.ProofOfWork()
 	previousHah := bc.LastBlock().Hash()
 	bc.CreateBlock(nonce, previousHah)
